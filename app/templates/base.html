@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        {% block head %}
+            <!-- Required meta tags -->
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+            {% block styles %}
+                <!-- Bootstrap CSS -->
+                {{ bootstrap.load_css() }}
+            {% endblock %}
+            <!-- Include Bootstrap CSS -->
+            <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+            <!-- Include Bootstrap-Select CSS -->
+            <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.13.14/css/bootstrap-select.min.css" rel="stylesheet">
+            
+            {% if title %}
+                <title>StatFuse - {{ title }}</title>
+            {% else %}
+                <title>StatFuse</title>
+            {% endif %}
+
+            <link rel="icon" href="{{ url_for('static', filename='Decal_Recursion_NS.png') }}" type="image/x-icon">
+            <style>
+                .vanu {background-color: #80008099;}
+                .nc {background-color: #4169e199;}
+                .terran {background-color: #80000099;}
+                .nso {background-color: #69696999;}
+            </style>
+        {% endblock %}
+    </head>
+    <body>
+        {% block navbar %}
+        <nav class="navbar navbar-dark navbar-expand-md bg-secondary justify-content-start">
+            <a href="{{ url_for('main.index') }}" class="navbar-brand d-flex">
+                <img src="{{ url_for('static', filename='Decal_RecursionNSO.png') }}" style="width: 80px;">
+                <span class="align-self-center"><h3>&nbsp;StatFuse</h3></span>
+            </a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#collapsingNavbar">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="navbar-collapse collapse" id="collapsingNavbar">
+                <ul class="navbar-nav w-100 justify-content-start">
+                    <li class="nav-item active">
+                        <a class="nav-link" href="{{ url_for('main.characters') }}">Characters</a>
+                    </li>
+                    <li class="nav-item dropdown active">
+                        <a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown">Reports</a>
+                        <div class="dropdown-menu dropdown-menu-left bg-secondary">
+                            <a class="btn btn-secondary w-100 text-left" href="{{ url_for('reports.general') }}">General</a>
+                            <a class="btn btn-secondary w-100 text-left" href="{{ url_for('reports.infantry') }}">Infantry</a>
+                            <a class="btn btn-secondary w-100 text-left" href="{{ url_for('reports.weapons') }}">Weapons(beta)</a>
+                        </div>
+                    </li>
+                </ul>
+                <ul class="nav navbar-nav ml-auto w-100 justify-content-end">
+                    <li class="nav-item dropdown active">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbardrop" data-toggle="dropdown">Other Sites</a>
+                        <div class="dropdown-menu dropdown-menu-right bg-secondary">
+                            <a class="btn btn-secondary w-100 text-left" href="https://wt.honu.pw/" target="_blank" rel="noopener noreferrer">Honu</a>
+                            <a class="btn btn-secondary w-100 text-left" href="https://ps2.fisu.pw/" target="_blank" rel="noopener noreferrer">Fisu</a>
+                            <a class="btn btn-secondary w-100 text-left" href="https://voidwell.com/blog" target="_blank" rel="noopener noreferrer">Voidwell</a>
+                            <a class="btn btn-secondary w-100 text-left" href="https://recursiontracker.com/" target="_blank" rel="noopener noreferrer">Recursion Tracker</a>
+                            <a class="btn btn-secondary w-100 text-left" href="https://ps2alerts.com/" target="_blank" rel="noopener noreferrer">PS2Alerts</a>
+                            <a class="btn btn-secondary w-100 text-left" href="https://liquidwarp.honu.pw/index.html" target="_blank" rel="noopener noreferrer">Liquidwarp</a>
+                            <a class="btn btn-secondary w-100 text-left" href="https://www.outfit-tracker.com/" target="_blank" rel="noopener noreferrer">Outfit Tracker</a>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+        {% endblock %}
+        {% block content %}
+        <div class="container-fluid bg-dark text-white min-vh-100 px-5 py-3">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible" role="alert">{{ message }}
+                    <button type="button" class="close" data-dismiss="alert">&times;</button>
+                </div>
+                {% endfor %}
+            {% endif %}
+            {% endwith %}
+            
+            {# application content needs to be provided in the app_content block #}
+            {% block app_content %}{% endblock %}
+        </div>
+        {% endblock %}
+
+        {% block scripts %}
+            <!-- Include jQuery -->
+            <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+            <!-- Include Bootstrap JS -->
+            <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+            <!-- Include Bootstrap-Select JS -->
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.13.14/js/bootstrap-select.min.js"></script>
+            <!-- Include Font Awesome JS (for icons) -->
+            <script src="https://kit.fontawesome.com/603e4601a6.js" crossorigin="anonymous"></script>
+            <!-- Include Chart.js -->
+            <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+            <!-- Include Chart.js annotation plugin -->
+            <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation"></script>
+            
+            <script>
+                $(document).ready(function() {
+                    $('.selectpicker').selectpicker();
+                    $('[data-toggle="tooltip"]').tooltip({ placement: 'right'});
+                });
+            </script>
+            <script>
+                function sortTable(n, o, tableSelector) {
+                    var table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
+                    table = document.getElementById(tableSelector);
+                    switching = true;
+                    // Set the sorting direction to ascending:
+                    dir = "asc";
+                    // Reset all icons to default sort icon before sorting
+                    $('#' + tableSelector + ' th i').attr('class', 'fas fa-sort');
+                    // Make a loop that will continue until no switching has been done:
+                    while (switching) {
+                        // Start by saying: no switching is done:
+                        switching = false;
+                        rows = table.rows;
+                        // Loop through all table rows (except the first, which contains table headers):
+                        for (i = o; i < (rows.length - 1); i++) {
+                            // Start by saying there should be no switching:
+                            shouldSwitch = false;
+                            // Get the two elements you want to compare, one from current row and one from the next:
+                            x = rows[i].getElementsByTagName("TD")[n];
+                            y = rows[i + 1].getElementsByTagName("TD")[n];
+                            var xContent = convertToSortableNumber(x.innerHTML);
+                            var yContent = convertToSortableNumber(y.innerHTML);
+                        // Check if the two rows should switch place, based on the direction, asc or desc:
+                        if (dir == "asc") {
+                            if (xContent > yContent) {
+                            // If so, mark as a switch and break the loop:
+                            shouldSwitch = true;
+                            break;
+                            }
+                        } else if (dir == "desc") {
+                            if (xContent < yContent) {
+                            // If so, mark as a switch and break the loop:
+                            shouldSwitch = true;
+                            break;
+                            }
+                        }
+                        }
+                        if (shouldSwitch) {
+                        // If a switch has been marked, make the switch and mark that a switch has been done:
+                        rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+                        switching = true;
+                        // Each time a switch is done, increase this count by 1:
+                        switchcount ++;
+                        } else {
+                        // If no switching has been done AND the direction is "asc", set the direction to "desc" and run the while loop again.
+                        if (switchcount == 0 && dir == "asc") {
+                            dir = "desc";
+                            switching = true;
+                        }
+                        }
+                    }
+                    // Update the icon after sorting
+                    var currentIcon = $('#' + tableSelector + ' th:nth-child(' + (n + 1) + ') i');
+                    if (dir === "asc") {
+                        currentIcon.removeClass('fa-sort-down fa-sort').addClass('fa-sort-up');
+                    } else if (dir === "desc") {
+                        currentIcon.removeClass('fa-sort-up fa-sort').addClass('fa-sort-down');
+                    } else {
+                        // Reset to default sort icon if neither asc nor desc
+                        currentIcon.removeClass('fa-sort-up fa-sort-down').addClass('fa-sort');
+                    }
+                }
+                // Function to convert number strings with commas to a format suitable for sorting
+                function convertToSortableNumber(value) {
+                    var numberString = value.replace(/,/g, '');
+                    if (!isNaN(numberString)) {
+                        return parseFloat(numberString);
+                    }
+                    return value.toLowerCase() === '-' ? 0 : value.toLowerCase();
+                }
+            </script>
+        {% endblock %}
+    </body>    
+</html>

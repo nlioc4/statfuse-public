@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block app_content %}
+    <head>
+        <style>
+            #loading {display: none;}
+        </style>
+    </head>
+    <body>
+        <h2>Add Characters</h2>
+        <div class="row my-3">
+            <div class="col-md-12">
+                <form id="form" method="POST">
+                    {{ form.hidden_tag() }}
+                    <h5>{{ form.characters.label }}(s)
+                    <i class="fa-regular fa-circle-question" data-toggle="tooltip" title="Enter a character OR enter a list of characters separated by commas, spaces, or both."></i></h5>
+                    <div class="input-group">
+                        {{ form.characters(class="form-control col-md-8", placeholder="Ex. Char OR Char1,Char2... OR Char1 Char2... OR Char1, Char2...") }}
+                        {{ form.search(class="btn btn-info form-control col-md-2", type="submit") }}
+                        <button type="button" class="btn btn-danger form-control col-md-2" onclick="clearChars()">Clear Characters</button>
+                    </div>
+                    <h5>OR</h5>
+                    <div class="input-group">
+                        {{ form.altText(class="form-control col-md-8", placeholder="Character to search for alts") }}
+                        <button type="button" class="btn btn-info form-control col-md-4" onclick="updateSelectField()" id="altSearch">Alt Search</button>
+                    </div>
+                    <div id="altSelect">
+                        <h5>Select up to 16 characters from this list:</h5>
+                        {{ form.alts(class="selectpicker form-control", data_max_options="16", data_style="btn-info") }}
+                    </div>
+                </form>
+                <div id="loading">
+                    <img src="{{ url_for('static', filename='clockwise spin.gif') }}" alt="loading" style="width: 80px;">
+                    Loading Characters...
+                </div>
+            </div>
+        </div>
+        <div class="row my-3">
+            {% if session.characters['chars'] %}
+            <div class="col-md-2 text-center my-auto">
+                <h5>Reports:</h5>
+            </div>
+            <div class="col-md-10">
+                <div class="btn-group w-100">
+                    <a class="btn btn-success" href="{{ url_for('reports.general') }}">General</a>
+                    <a class="btn btn-success disabled" href="#">Placeholder</a>
+                    <a class="btn btn-success disabled" href="#">Placeholder</a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        <div class="row my-3">
+            <div class="col-md-12">
+                {% if session.characters['chars'] %}
+                    {% set chars_total = session.characters['total'] %}
+                    <button type="button" class="btn btn-secondary form-control text-left" data-toggle="collapse" data-target="#collapseCharacters">Characters - <span id="total">{{ chars_total }}</span> / 16
+                        <i class="fa-regular fa-circle-question" data-toggle="tooltip" title="Limited to 16 characters based on max characters per DBG account."></i>
+                    </button>
+                    <div id="collapseCharacters" class="collapse show">
+                        <div class="table-responsive">
+                            <table class="table table-dark table-bordered" id="charTable">
+                                <thead>
+                                    <tr>
+                                        <th onclick="sortTable(0, 1, 'charTable')">Character ID <i class="fas fa-sort"></i></th>
+                                        <th onclick="sortTable(1, 1, 'charTable')">Name <i class="fas fa-sort"></i></th>
+                                        <th onclick="sortTable(2, 1, 'charTable')">Faction <i class="fas fa-sort"></i></th>
+                                        <th onclick="sortTable(3, 1, 'charTable')">Server <i class="fas fa-sort"></i></th>
+                                        <th onclick="sortTable(4, 1, 'charTable')">ASP <i class="fas fa-sort"></i></th>
+                                        <th onclick="sortTable(5, 1, 'charTable')">Battle Rank <i class="fas fa-sort"></i></th>
+                                        <th onclick="sortTable(6, 1, 'charTable')">Hours Played <i class="fas fa-sort"></i></th>
+                                        <th onclick="sortTable(7, 1, 'charTable')">Last Login <i class="fas fa-sort"></i></th>
+                                        <th onclick="sortTable(8, 1, 'charTable')">Date Created <i class="fas fa-sort"></i></th>
+                                        <th>Fisu</th>
+                                        <th>Honu</th>
+                                        <th>Remove</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% set faction_dict = {'1':'VS', '2':'NC', '3':'TR', '4':'NSO'} %}
+                                    {% set background_dict = {'1':"vanu", '2':"nc", '3':"terran", '4':"nso"} %}
+                                    {% set server_dict = {'1':'Connery', '10':'Miller', '13':'Cobalt', '17':'Emerald', '19':'Jaeger', '24':'Apex', '25':'Briggs', '40':'SolTech'} %}
+                                    {% for character in session.characters['chars'] %}
+                                    <tr class="{{ background_dict[character['character_list'][0]['faction_id']] }}">
+                                        <td>{{ character['character_list'][0]['character_id'] }}</td>
+                                        <td>{{ character['character_list'][0]['name']['first'] }}</td>
+                                        <td>{{ faction_dict[character['character_list'][0]['faction_id']] }}</td>
+                                        <td>{{ server_dict[character['character_list'][0]['world_id']] }}</td>
+                                        <td>{{ character['character_list'][0]['prestige_level'] }}</td>
+                                        <td>{{ character['character_list'][0]['battle_rank']['value'] }}</td>
+                                        <td>{{ "%.2f"|format(((character['character_list'][0]['times']['minutes_played'])|int) / 60) }}</td>
+                                        <td>{{ character['character_list'][0]['times']['last_login_date'] }}</td>
+                                        <td>{{ character['character_list'][0]['times']['creation_date'] }}</td>
+                                        <td><a href="https://ps2.fisu.pw/player/?name={{character['character_list'][0]['name']['first_lower']}}" class="btn btn-info" role="button" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-paperclip" data-toggle="tooltip" title="Open in Fisu"></i></a></td>
+                                        <td><a href="https://wt.honu.pw/c/{{character['character_list'][0]['character_id']}}" class="btn btn-info" role="button" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-paperclip" data-toggle="tooltip" title="Open in Honu"></i></a></td>
+                                        <td><button type="button" class="btn btn-danger delete-btn" onclick="deleteRow(this)"><i class="fa-solid fa-trash"></i></button></td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        <script>
+            document.getElementById('form').addEventListener('submit', function () {
+                document.getElementById('loading').style.display = 'block';
+            });
+
+            async function deleteRow(r) {
+                var i = r.parentNode.parentNode.rowIndex;
+                var firstCell = document.getElementById("charTable").rows[i].cells[0];
+                var charID = firstCell.textContent || firstCell.innerText;
+
+                document.getElementById("charTable").deleteRow(i);
+                const response = await fetch('/delete_char', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json;'},
+                    body: JSON.stringify({
+                        id: charID
+                    })
+                });
+                const returned = await response.json();
+                console.log(returned)
+                document.getElementById("total").innerText = returned.total;
+            }
+
+            async function clearChars() {
+                const response = await fetch('/clear_chars', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json;'}
+                });
+                const returned = await response.json();
+                console.log(returned);
+                document.location.href = '/characters';
+            }
+
+            let userInput = '';
+            const textInput = document.getElementById('altText');
+            textInput.addEventListener('input', function() {
+                userInput = textInput.value;
+                console.log('Current input value:', userInput);
+            });
+
+            document.getElementById("altSelect").style.display = "none";
+
+            async function fetchAlts() {
+                const userInput = document.getElementById('altText').value;
+                const requestData = JSON.stringify({ characters: userInput });
+                const response = await fetch('/alt_search', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json;'},
+                    body: requestData
+                });
+
+                const data = await response.json();
+                console.log(data);
+                
+                if (Array.isArray(data.choices)) {
+                    document.getElementById("altSelect").style.display = "block";
+                    return data.choices;
+                } else {
+                    console.error('Invalid response format. Expected an array of choices.');
+                    return [];
+                }
+            }
+            async function updateSelectField() {
+                const selectField = $("select[name='alts']");
+                const choices = await fetchAlts();
+                console.log(choices);
+                selectField.empty();
+                
+                $.each(choices, function (index, value) {
+                    selectField.append($("<option></option>")
+                    .attr("value", value)
+                    .text(value));
+                });
+                selectField.selectpicker();
+                selectField.selectpicker('refresh');
+            }
+        </script>
+    </body>
+{% endblock %}

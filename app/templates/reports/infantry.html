@@ -1,0 +1,353 @@
+{% extends "base.html" %}
+
+{% block app_content %}
+    <head>
+        <style>
+            #loading {display: none;}
+        </style>
+    </head>
+    <body>
+        <h2>Infantry Fuse</h2>
+        <div class="row my-3">
+            <div class="col-md-12">
+                <form id="infantryForm" method="POST">
+                    {{ form.hidden_tag() }}<br>
+                    <h6>{{ form.characters2.label }}(s)
+                    <i class="fa-regular fa-circle-question" data-toggle="tooltip" title="Enter a list of characters separated by commas, spaces, or both."></i>
+                    </h6>
+                    <div class="input-group mb-3">
+                        {{ form.characters2(class="form-control col-md-10", placeholder="Pressing 'Run Report' with this box empty will generate the report using the characters stored from the 'Characters' page.") }}
+                        {{ form.run_report(class="btn btn-info form-control col-md-2", type="submit") }}
+                    </div>
+                </form>
+                <div id="loading">
+                    <img src="{{ url_for('static', filename='fidget spinner.gif') }}" alt="loading" style="width: 80px;">
+                    Loading Characters...
+                </div>
+            </div>
+        </div>
+        {% if char_list['chars'] %}
+        <div class="row my-3">
+            <div class="col-md-12">
+                {% set faction_dict = {'1':'VS', '2':'NC', '3':'TR', '4':'NSO'} %}
+                {% set background_dict = {'1':"vanu", '2':"nc", '3':"terran", '4':"nso"} %}
+                <button type="button" id="toggleButton" class="btn btn-success toggle-button">Toggle Extra Info</button>
+                <table class="table table-dark">
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th>Class</th>
+                            <th>Hours Played (%)</th>
+                            <th>SPM <span class="toggleable">(Score As/Min as)</span></th>
+                            <th>Kills vs. (%)</th>
+                            <th>K/D <span class="toggleable">(Kills vs./Deaths by)</span></th>
+                            <th>KPM <span class="toggleable">(Kills vs./Min Total)</span></th>
+                            <th>Deaths by (%)</th>
+                            <th>Accuracy <span class="toggleable">(Hit/Fired)</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr data-toggle="collapse" data-target="#infil" class="accordion-toggle bg-secondary">
+                            <td><img src="{{ url_for('static', filename='infiltrator.png') }}" style="width: 24px;"></td>
+                            <td>Infiltrator</td>
+                            <td>{{ "{:,.2f}".format(totals['infil']['minutes_played'] / 60) }} ({{ "{:,.2f}".format(totals['infil']['minutes_played'] / totals['minutes_played'] * 100 if totals['minutes_played'] > 0 else 0) }}%)</td>
+                            <td>{{ "{:,.2f}".format(totals['infil']['score'] / totals['infil']['minutes_played'] if totals['infil']['minutes_played'] > 0 else 0) }} <span class="toggleable">({{ "{:,}".format(totals['infil']['score']) }}/{{ "{:,}".format(totals['infil']['minutes_played']) }})</span></td>
+                            <td>{{ "{:,}".format(totals['infil']['kills']) }} ({{ "{:,.2f}".format(totals['infil']['kills'] / totals['kills'] * 100 if totals['kills'] > 0 else 0) }}%)</td>
+                            <td>{{ "{:,.2f}".format(totals['infil']['kills'] / totals['infil']['deaths_by'] if totals['infil']['deaths_by'] > 0 else 0) }} <span class="toggleable">({{ "{:,}".format(totals['infil']['kills']) }}/{{ "{:,}".format(totals['infil']['deaths_by']) }})</span></td>
+                            <td>{{ "{:,.2f}".format(totals['infil']['kills'] / totals['minutes_played'] if totals['minutes_played'] > 0 else 0) }} <span class="toggleable">({{ "{:,}".format(totals['infil']['kills']) }}/{{ "{:,}".format(totals['minutes_played']) }})</span></td>
+                            <td>{{ "{:,}".format(totals['infil']['deaths_by']) }} ({{ "{:,.2f}".format(totals['infil']['deaths_by'] / totals['deaths_by'] * 100 if totals['deaths_by'] > 0 else 0) }}%)</td>
+                            <td>{{ "{:,.2f}".format(totals['infil']['shots_hit'] / totals['infil']['shots_fired'] * 100 if totals['infil']['shots_fired'] > 0 else 0) }}% <span class="toggleable">({{ "{:,}".format(totals['infil']['shots_hit']) }}/{{ "{:,}".format(totals['infil']['shots_fired']) }})</span></td>
+                        </tr>
+                        <tr>
+                            <td colspan="100%" class="hiddenRow">
+                                <div class="accordian-body collapse" id="infil">
+                                    <table class="table table-dark table-bordered">
+                                        <thead>
+                                            <tr>
+                                                <th>Name</th>
+                                                <th>Hours Played (%)</th>
+                                                <th>SPM <span class="toggleable">(Score As/Min as)</span></th>
+                                                <th>Kills vs. (%)</th>
+                                                <th>K/D <span class="toggleable">(Kills vs./Deaths by)</span></th>
+                                                <th>KPM <span class="toggleable">(Kills vs./Min Total)</span></th>
+                                                <th>Deaths by (%)</th>
+                                                <th>Accuracy <span class="toggleable">(Hit/Fired)</span></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for character in char_list['chars'] %}
+                                            <tr class="{{ background_dict[character['character_list'][0]['faction_id']] }}">
+                                                <td>{{ character['character_list'][0]['name']['first'] }}</td>
+                                                <td>{{ "{:,.2f}".format(character|get_stat_value_forever('play_time', '1')|int / 3600) }} ({{ "{:,.2f}".format((character|get_stat_value_forever('play_time', '1')|int / 60) / totals['infil']['minutes_played'] * 100 if totals['infil']['minutes_played'] > 0 else 0) }}%)</td>
+                                                <td>{{ "{:,.2f}".format(character|get_stat_value_forever('score', '1')|int / (character|get_stat_value_forever('play_time', '1')|int / 60) if (character|get_stat_value_forever('play_time', '1')|int / 60) > 0 else 0) }} <span class="toggleable">({{ "{:,}".format(character|get_stat_value_forever('score', '1')|int) }}/{{ "{:,.2f}".format(character|get_stat_value_forever('play_time', '1')|int / 60) }})</span></td>
+                                                <td>{{ "{:,}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('kills', '1'))) }} ({{ "{:,.2f}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('kills', '1')) / totals['infil']['kills'] * 100 if totals['infil']['kills'] > 0 else 0) }}%)</td>
+                                                <td>{{ "{:,.2f}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('kills', '1')) / character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('killed_by', '1')) if character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('killed_by', '1')) > 0 else 0) }} <span class="toggleable">({{ "{:,}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('kills', '1'))) }}/{{ "{:,}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('killed_by', '1'))) }})</span></td>
+                                                <td>{{ "{:,.2f}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('kills', '1')) / character['character_list'][0]['times']['minutes_played']|int if character['character_list'][0]['times']['minutes_played']|int > 0 else 0) }} <span class="toggleable">({{ "{:,}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('kills', '1'))) }}/{{ "{:,}".format(character['character_list'][0]['times']['minutes_played']|int) }})</span></td>
+                                                <td>{{ "{:,}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('killed_by', '1'))) }} ({{ "{:,.2f}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('killed_by', '1')) / totals['infil']['deaths_by'] * 100 if totals['infil']['deaths_by'] > 0 else 0) }}%)</td>
+                                                <td>{{ "{:,.2f}".format(character|get_stat_value_forever('hit_count', '1')|int / character|get_stat_value_forever('fire_count', '1')|int * 100 if character|get_stat_value_forever('fire_count', '1')|int > 0 else 0) }}% <span class="toggleable">({{ "{:,}".format(character|get_stat_value_forever('hit_count', '1')|int) }}/{{ "{:,}".format(character|get_stat_value_forever('fire_count', '1')|int) }})</span></td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr data-toggle="collapse" data-target="#la" class="accordion-toggle bg-secondary">
+                            <td><img src="{{ url_for('static', filename='light assault.png') }}" style="width: 24px;"></td>
+                            <td>Light Assault</td>
+                            <td>{{ "{:,.2f}".format(totals['la']['minutes_played'] / 60) }} ({{ "{:,.2f}".format(totals['la']['minutes_played'] / totals['minutes_played'] * 100 if totals['minutes_played'] > 0 else 0) }}%)</td>
+                            <td>{{ "{:,.2f}".format(totals['la']['score'] / totals['la']['minutes_played'] if totals['la']['minutes_played'] > 0 else 0) }} <span class="toggleable">({{ "{:,}".format(totals['la']['score']) }}/{{ "{:,}".format(totals['la']['minutes_played']) }})</span></td>
+                            <td>{{ "{:,}".format(totals['la']['kills']) }} ({{ "{:,.2f}".format(totals['la']['kills'] / totals['kills'] * 100 if totals['kills'] > 0 else 0) }}%)</td>
+                            <td>{{ "{:,.2f}".format(totals['la']['kills'] / totals['la']['deaths_by'] if totals['la']['deaths_by'] > 0 else 0) }} <span class="toggleable">({{ "{:,}".format(totals['la']['kills']) }}/{{ "{:,}".format(totals['la']['deaths_by']) }})</span></td>
+                            <td>{{ "{:,.2f}".format(totals['la']['kills'] / totals['minutes_played'] if totals['minutes_played'] > 0 else 0) }} <span class="toggleable">({{ "{:,}".format(totals['la']['kills']) }}/{{ "{:,}".format(totals['minutes_played']) }})</span></td>
+                            <td>{{ "{:,}".format(totals['la']['deaths_by']) }} ({{ "{:,.2f}".format(totals['la']['deaths_by'] / totals['deaths_by'] * 100 if totals['deaths_by'] > 0 else 0) }}%)</td>
+                            <td>{{ "{:,.2f}".format(totals['la']['shots_hit'] / totals['la']['shots_fired'] * 100 if totals['la']['shots_fired'] > 0 else 0) }}% <span class="toggleable">({{ "{:,}".format(totals['la']['shots_hit']) }}/{{ "{:,}".format(totals['la']['shots_fired']) }})</span></td>
+                        </tr>
+                        <tr>
+                            <td colspan="100%" class="hiddenRow">
+                                <div class="accordian-body collapse" id="la">
+                                    <table class="table table-dark table-bordered">
+                                        <thead>
+                                            <tr>
+                                                <th>Name</th>
+                                                <th>Hours Played (%)</th>
+                                                <th>SPM <span class="toggleable">(Score As/Min as)</span></th>
+                                                <th>Kills vs. (%)</th>
+                                                <th>K/D <span class="toggleable">(Kills vs./Deaths by)</span></th>
+                                                <th>KPM <span class="toggleable">(Kills vs./Min Total)</span></th>
+                                                <th>Deaths by (%)</th>
+                                                <th>Accuracy <span class="toggleable">(Hit/Fired)</span></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for character in char_list['chars'] %}
+                                            <tr class="{{ background_dict[character['character_list'][0]['faction_id']] }}">
+                                                <td>{{ character['character_list'][0]['name']['first'] }}</td>
+                                                <td>{{ "{:,.2f}".format(character|get_stat_value_forever('play_time', '3')|int / 3600) }} ({{ "{:,.2f}".format((character|get_stat_value_forever('play_time', '3')|int / 60) / totals['la']['minutes_played'] * 100 if totals['la']['minutes_played'] > 0 else 0) }}%)</td>
+                                                <td>{{ "{:,.2f}".format(character|get_stat_value_forever('score', '3')|int / (character|get_stat_value_forever('play_time', '3')|int / 60) if (character|get_stat_value_forever('play_time', '3')|int / 60) > 0 else 0) }} <span class="toggleable">({{ "{:,}".format(character|get_stat_value_forever('score', '3')|int) }}/{{ "{:,.2f}".format(character|get_stat_value_forever('play_time', '3')|int / 60) }})</span></td>
+                                                <td>{{ "{:,}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('kills', '3'))) }} ({{ "{:,.2f}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('kills', '3')) / totals['la']['kills'] * 100 if totals['la']['kills'] > 0 else 0) }}%)</td>
+                                                <td>{{ "{:,.2f}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('kills', '3')) / character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('killed_by', '3')) if character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('killed_by', '3')) > 0 else 0) }} <span class="toggleable">({{ "{:,}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('kills', '3'))) }}/{{ "{:,}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('killed_by', '3'))) }})</span></td>
+                                                <td>{{ "{:,.2f}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('kills', '3')) / character['character_list'][0]['times']['minutes_played']|int if character['character_list'][0]['times']['minutes_played']|int > 0 else 0) }} <span class="toggleable">({{ "{:,}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('kills', '3'))) }}/{{ "{:,}".format(character['character_list'][0]['times']['minutes_played']|int) }})</span></td>
+                                                <td>{{ "{:,}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('killed_by', '3'))) }} ({{ "{:,.2f}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('killed_by', '3')) / totals['la']['deaths_by'] * 100 if totals['la']['deaths_by'] > 0 else 0) }}%)</td>
+                                                <td>{{ "{:,.2f}".format(character|get_stat_value_forever('hit_count', '3')|int / character|get_stat_value_forever('fire_count', '3')|int * 100 if character|get_stat_value_forever('fire_count', '3')|int > 0 else 0) }}% <span class="toggleable">({{ "{:,}".format(character|get_stat_value_forever('hit_count', '3')|int) }}/{{ "{:,}".format(character|get_stat_value_forever('fire_count', '3')|int) }})</span></td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr data-toggle="collapse" data-target="#medic" class="accordion-toggle bg-secondary">
+                            <td><img src="{{ url_for('static', filename='medic.png') }}" style="width: 24px;"></td>
+                            <td>Medic</td>
+                            <td>{{ "{:,.2f}".format(totals['medic']['minutes_played'] / 60) }} ({{ "{:,.2f}".format(totals['medic']['minutes_played'] / totals['minutes_played'] * 100 if totals['minutes_played'] > 0 else 0) }}%)</td>
+                            <td>{{ "{:,.2f}".format(totals['medic']['score'] / totals['medic']['minutes_played'] if totals['medic']['minutes_played'] > 0 else 0) }} <span class="toggleable">({{ "{:,}".format(totals['medic']['score']) }}/{{ "{:,}".format(totals['medic']['minutes_played']) }})</span></td>
+                            <td>{{ "{:,}".format(totals['medic']['kills']) }} ({{ "{:,.2f}".format(totals['medic']['kills'] / totals['kills'] * 100 if totals['kills'] > 0 else 0) }}%)</td>
+                            <td>{{ "{:,.2f}".format(totals['medic']['kills'] / totals['medic']['deaths_by'] if totals['medic']['deaths_by'] > 0 else 0) }} <span class="toggleable">({{ "{:,}".format(totals['medic']['kills']) }}/{{ "{:,}".format(totals['medic']['deaths_by']) }})</span></td>
+                            <td>{{ "{:,.2f}".format(totals['medic']['kills'] / totals['minutes_played'] if totals['minutes_played'] > 0 else 0) }} <span class="toggleable">({{ "{:,}".format(totals['medic']['kills']) }}/{{ "{:,}".format(totals['minutes_played']) }})</span></td>
+                            <td>{{ "{:,}".format(totals['medic']['deaths_by']) }} ({{ "{:,.2f}".format(totals['medic']['deaths_by'] / totals['deaths_by'] * 100 if totals['deaths_by'] > 0 else 0) }}%)</td>
+                            <td>{{ "{:,.2f}".format(totals['medic']['shots_hit'] / totals['medic']['shots_fired'] * 100 if totals['medic']['shots_fired'] > 0 else 0) }}% <span class="toggleable">({{ "{:,}".format(totals['medic']['shots_hit']) }}/{{ "{:,}".format(totals['medic']['shots_fired']) }})</span></td>
+                        </tr>
+                        <tr>
+                            <td colspan="100%" class="hiddenRow">
+                                <div class="accordian-body collapse" id="medic">
+                                    <table class="table table-dark table-bordered">
+                                        <thead>
+                                            <tr>
+                                                <th>Name</th>
+                                                <th>Hours Played (%)</th>
+                                                <th>SPM <span class="toggleable">(Score As/Min as)</span></th>
+                                                <th>Kills vs. (%)</th>
+                                                <th>K/D <span class="toggleable">(Kills vs./Deaths by)</span></th>
+                                                <th>KPM <span class="toggleable">(Kills vs./Min Total)</span></th>
+                                                <th>Deaths by (%)</th>
+                                                <th>Accuracy <span class="toggleable">(Hit/Fired)</span></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for character in char_list['chars'] %}
+                                            <tr class="{{ background_dict[character['character_list'][0]['faction_id']] }}">
+                                                <td>{{ character['character_list'][0]['name']['first'] }}</td>
+                                                <td>{{ "{:,.2f}".format(character|get_stat_value_forever('play_time', '4')|int / 3600) }} ({{ "{:,.2f}".format((character|get_stat_value_forever('play_time', '4')|int / 60) / totals['medic']['minutes_played'] * 100 if totals['medic']['minutes_played'] > 0 else 0) }}%)</td>
+                                                <td>{{ "{:,.2f}".format(character|get_stat_value_forever('score', '4')|int / (character|get_stat_value_forever('play_time', '4')|int / 60) if (character|get_stat_value_forever('play_time', '4')|int / 60) > 0 else 0) }} <span class="toggleable">({{ "{:,}".format(character|get_stat_value_forever('score', '4')|int) }}/{{ "{:,.2f}".format(character|get_stat_value_forever('play_time', '4')|int / 60) }})</span></td>
+                                                <td>{{ "{:,}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('kills', '4'))) }} ({{ "{:,.2f}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('kills', '4')) / totals['medic']['kills'] * 100 if totals['medic']['kills'] > 0 else 0) }}%)</td>
+                                                <td>{{ "{:,.2f}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('kills', '4')) / character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('killed_by', '4')) if character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('killed_by', '4')) > 0 else 0) }} <span class="toggleable">({{ "{:,}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('kills', '4'))) }}/{{ "{:,}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('killed_by', '4'))) }})</span></td>
+                                                <td>{{ "{:,.2f}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('kills', '4')) / character['character_list'][0]['times']['minutes_played']|int if character['character_list'][0]['times']['minutes_played']|int > 0 else 0) }} <span class="toggleable">({{ "{:,}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('kills', '4'))) }}/{{ "{:,}".format(character['character_list'][0]['times']['minutes_played']|int) }})</span></td>
+                                                <td>{{ "{:,}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('killed_by', '4'))) }} ({{ "{:,.2f}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('killed_by', '4')) / totals['medic']['deaths_by'] * 100 if totals['medic']['deaths_by'] > 0 else 0) }}%)</td>
+                                                <td>{{ "{:,.2f}".format(character|get_stat_value_forever('hit_count', '4')|int / character|get_stat_value_forever('fire_count', '4')|int * 100 if character|get_stat_value_forever('fire_count', '4')|int > 0 else 0) }}% <span class="toggleable">({{ "{:,}".format(character|get_stat_value_forever('hit_count', '4')|int) }}/{{ "{:,}".format(character|get_stat_value_forever('fire_count', '4')|int) }})</span></td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr data-toggle="collapse" data-target="#engi" class="accordion-toggle bg-secondary">
+                            <td><img src="{{ url_for('static', filename='engineer.png') }}" style="width: 24px;"></td>
+                            <td>Engineer</td>
+                            <td>{{ "{:,.2f}".format(totals['engi']['minutes_played'] / 60) }} ({{ "{:,.2f}".format(totals['engi']['minutes_played'] / totals['minutes_played'] * 100 if totals['minutes_played'] > 0 else 0) }}%)</td>
+                            <td>{{ "{:,.2f}".format(totals['engi']['score'] / totals['engi']['minutes_played'] if totals['engi']['minutes_played'] > 0 else 0) }} <span class="toggleable">({{ "{:,}".format(totals['engi']['score']) }}/{{ "{:,}".format(totals['engi']['minutes_played']) }})</span></td>
+                            <td>{{ "{:,}".format(totals['engi']['kills']) }} ({{ "{:,.2f}".format(totals['engi']['kills'] / totals['kills'] * 100 if totals['kills'] > 0 else 0) }}%)</td>
+                            <td>{{ "{:,.2f}".format(totals['engi']['kills'] / totals['engi']['deaths_by'] if totals['engi']['deaths_by'] > 0 else 0) }} <span class="toggleable">({{ "{:,}".format(totals['engi']['kills']) }}/{{ "{:,}".format(totals['engi']['deaths_by']) }})</span></td>
+                            <td>{{ "{:,.2f}".format(totals['engi']['kills'] / totals['minutes_played'] if totals['minutes_played'] > 0 else 0) }} <span class="toggleable">({{ "{:,}".format(totals['engi']['kills']) }}/{{ "{:,}".format(totals['minutes_played']) }})</span></td>
+                            <td>{{ "{:,}".format(totals['engi']['deaths_by']) }} ({{ "{:,.2f}".format(totals['engi']['deaths_by'] / totals['deaths_by'] * 100 if totals['deaths_by'] > 0 else 0) }}%)</td>
+                            <td>{{ "{:,.2f}".format(totals['engi']['shots_hit'] / totals['engi']['shots_fired'] * 100 if totals['engi']['shots_fired'] > 0 else 0) }}% <span class="toggleable">({{ "{:,}".format(totals['engi']['shots_hit']) }}/{{ "{:,}".format(totals['engi']['shots_fired']) }})</span></td>
+                        </tr>
+                        <tr>
+                            <td colspan="100%" class="hiddenRow">
+                                <div class="accordian-body collapse" id="engi">
+                                    <table class="table table-dark table-bordered">
+                                        <thead>
+                                            <tr>
+                                                <th>Name</th>
+                                                <th>Hours Played (%)</th>
+                                                <th>SPM <span class="toggleable">(Score As/Min as)</span></th>
+                                                <th>Kills vs. (%)</th>
+                                                <th>K/D <span class="toggleable">(Kills vs./Deaths by)</span></th>
+                                                <th>KPM <span class="toggleable">(Kills vs./Min Total)</span></th>
+                                                <th>Deaths by (%)</th>
+                                                <th>Accuracy <span class="toggleable">(Hit/Fired)</span></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for character in char_list['chars'] %}
+                                            <tr class="{{ background_dict[character['character_list'][0]['faction_id']] }}">
+                                                <td>{{ character['character_list'][0]['name']['first'] }}</td>
+                                                <td>{{ "{:,.2f}".format(character|get_stat_value_forever('play_time', '5')|int / 3600) }} ({{ "{:,.2f}".format((character|get_stat_value_forever('play_time', '5')|int / 60) / totals['engi']['minutes_played'] * 100 if totals['engi']['minutes_played'] > 0 else 0) }}%)</td>
+                                                <td>{{ "{:,.2f}".format(character|get_stat_value_forever('score', '5')|int / (character|get_stat_value_forever('play_time', '5')|int / 60) if (character|get_stat_value_forever('play_time', '5')|int / 60) > 0 else 0) }} <span class="toggleable">({{ "{:,}".format(character|get_stat_value_forever('score', '5')|int) }}/{{ "{:,.2f}".format(character|get_stat_value_forever('play_time', '5')|int / 60) }})</span></td>
+                                                <td>{{ "{:,}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('kills', '5'))) }} ({{ "{:,.2f}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('kills', '5')) / totals['engi']['kills'] * 100 if totals['engi']['kills'] > 0 else 0) }}%)</td>
+                                                <td>{{ "{:,.2f}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('kills', '5')) / character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('killed_by', '5')) if character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('killed_by', '5')) > 0 else 0) }} <span class="toggleable">({{ "{:,}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('kills', '5'))) }}/{{ "{:,}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('killed_by', '5'))) }})</span></td>
+                                                <td>{{ "{:,.2f}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('kills', '5')) / character['character_list'][0]['times']['minutes_played']|int if character['character_list'][0]['times']['minutes_played']|int > 0 else 0) }} <span class="toggleable">({{ "{:,}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('kills', '5'))) }}/{{ "{:,}".format(character['character_list'][0]['times']['minutes_played']|int) }})</span></td>
+                                                <td>{{ "{:,}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('killed_by', '5'))) }} ({{ "{:,.2f}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('killed_by', '5')) / totals['engi']['deaths_by'] * 100 if totals['engi']['deaths_by'] > 0 else 0) }}%)</td>
+                                                <td>{{ "{:,.2f}".format(character|get_stat_value_forever('hit_count', '5')|int / character|get_stat_value_forever('fire_count', '5')|int * 100 if character|get_stat_value_forever('fire_count', '5')|int > 0 else 0) }}% <span class="toggleable">({{ "{:,}".format(character|get_stat_value_forever('hit_count', '5')|int) }}/{{ "{:,}".format(character|get_stat_value_forever('fire_count', '5')|int) }})</span></td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr data-toggle="collapse" data-target="#ha" class="accordion-toggle bg-secondary">
+                            <td><img src="{{ url_for('static', filename='heavy assault.png') }}" style="width: 24px;"></td>
+                            <td>Heavy Assault</td>
+                            <td>{{ "{:,.2f}".format(totals['ha']['minutes_played'] / 60) }} ({{ "{:,.2f}".format(totals['ha']['minutes_played'] / totals['minutes_played'] * 100 if totals['minutes_played'] > 0 else 0) }}%)</td>
+                            <td>{{ "{:,.2f}".format(totals['ha']['score'] / totals['ha']['minutes_played'] if totals['ha']['minutes_played'] > 0 else 0) }} <span class="toggleable">({{ "{:,}".format(totals['ha']['score']) }}/{{ "{:,}".format(totals['ha']['minutes_played']) }})</span></td>
+                            <td>{{ "{:,}".format(totals['ha']['kills']) }} ({{ "{:,.2f}".format(totals['ha']['kills'] / totals['kills'] * 100 if totals['kills'] > 0 else 0) }}%)</td>
+                            <td>{{ "{:,.2f}".format(totals['ha']['kills'] / totals['ha']['deaths_by'] if totals['ha']['deaths_by'] > 0 else 0) }} <span class="toggleable">({{ "{:,}".format(totals['ha']['kills']) }}/{{ "{:,}".format(totals['ha']['deaths_by']) }})</span></td>
+                            <td>{{ "{:,.2f}".format(totals['ha']['kills'] / totals['minutes_played'] if totals['minutes_played'] > 0 else 0) }} <span class="toggleable">({{ "{:,}".format(totals['ha']['kills']) }}/{{ "{:,}".format(totals['minutes_played']) }})</span></td>
+                            <td>{{ "{:,}".format(totals['ha']['deaths_by']) }} ({{ "{:,.2f}".format(totals['ha']['deaths_by'] / totals['deaths_by'] * 100 if totals['deaths_by'] > 0 else 0) }}%)</td>
+                            <td>{{ "{:,.2f}".format(totals['ha']['shots_hit'] / totals['ha']['shots_fired'] * 100 if totals['ha']['shots_fired'] > 0 else 0) }}% <span class="toggleable">({{ "{:,}".format(totals['ha']['shots_hit']) }}/{{ "{:,}".format(totals['ha']['shots_fired']) }})</span></td>
+                        </tr>
+                        <tr>
+                            <td colspan="100%" class="hiddenRow">
+                                <div class="accordian-body collapse" id="ha">
+                                    <table class="table table-dark table-bordered">
+                                        <thead>
+                                            <tr>
+                                                <th>Name</th>
+                                                <th>Hours Played (%)</th>
+                                                <th>SPM <span class="toggleable">(Score As/Min as)</span></th>
+                                                <th>Kills vs. (%)</th>
+                                                <th>K/D <span class="toggleable">(Kills vs./Deaths by)</span></th>
+                                                <th>KPM <span class="toggleable">(Kills vs./Min Total)</span></th>
+                                                <th>Deaths by (%)</th>
+                                                <th>Accuracy <span class="toggleable">(Hit/Fired)</span></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for character in char_list['chars'] %}
+                                            <tr class="{{ background_dict[character['character_list'][0]['faction_id']] }}">
+                                                <td>{{ character['character_list'][0]['name']['first'] }}</td>
+                                                <td>{{ "{:,.2f}".format(character|get_stat_value_forever('play_time', '6')|int / 3600) }} ({{ "{:,.2f}".format((character|get_stat_value_forever('play_time', '6')|int / 60) / totals['ha']['minutes_played'] * 100 if totals['ha']['minutes_played'] > 0 else 0) }}%)</td>
+                                                <td>{{ "{:,.2f}".format(character|get_stat_value_forever('score', '6')|int / (character|get_stat_value_forever('play_time', '6')|int / 60) if (character|get_stat_value_forever('play_time', '6')|int / 60) > 0 else 0) }} <span class="toggleable">({{ "{:,}".format(character|get_stat_value_forever('score', '6')|int) }}/{{ "{:,.2f}".format(character|get_stat_value_forever('play_time', '6')|int / 60) }})</span></td>
+                                                <td>{{ "{:,}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('kills', '6'))) }} ({{ "{:,.2f}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('kills', '6')) / totals['ha']['kills'] * 100 if totals['ha']['kills'] > 0 else 0) }}%)</td>
+                                                <td>{{ "{:,.2f}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('kills', '6')) / character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('killed_by', '6')) if character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('killed_by', '6')) > 0 else 0) }} <span class="toggleable">({{ "{:,}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('kills', '6'))) }}/{{ "{:,}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('killed_by', '6'))) }})</span></td>
+                                                <td>{{ "{:,.2f}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('kills', '6')) / character['character_list'][0]['times']['minutes_played']|int if character['character_list'][0]['times']['minutes_played']|int > 0 else 0) }} <span class="toggleable">({{ "{:,}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('kills', '6'))) }}/{{ "{:,}".format(character['character_list'][0]['times']['minutes_played']|int) }})</span></td>
+                                                <td>{{ "{:,}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('killed_by', '6'))) }} ({{ "{:,.2f}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('killed_by', '6')) / totals['ha']['deaths_by'] * 100 if totals['ha']['deaths_by'] > 0 else 0) }}%)</td>
+                                                <td>{{ "{:,.2f}".format(character|get_stat_value_forever('hit_count', '6')|int / character|get_stat_value_forever('fire_count', '6')|int * 100 if character|get_stat_value_forever('fire_count', '6')|int > 0 else 0) }}% <span class="toggleable">({{ "{:,}".format(character|get_stat_value_forever('hit_count', '6')|int) }}/{{ "{:,}".format(character|get_stat_value_forever('fire_count', '6')|int) }})</span></td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr data-toggle="collapse" data-target="#max" class="accordion-toggle bg-secondary">
+                            <td><img src="{{ url_for('static', filename='max.png') }}" style="width: 24px;"></td>
+                            <td>Max</td>
+                            <td>{{ "{:,.2f}".format(totals['max']['minutes_played'] / 60) }} ({{ "{:,.2f}".format(totals['max']['minutes_played'] / totals['minutes_played'] * 100 if totals['minutes_played'] > 0 else 0) }}%)</td>
+                            <td>{{ "{:,.2f}".format(totals['max']['score'] / totals['max']['minutes_played'] if totals['max']['minutes_played'] > 0 else 0) }} <span class="toggleable">({{ "{:,}".format(totals['max']['score']) }}/{{ "{:,}".format(totals['max']['minutes_played']) }})</span></td>
+                            <td>{{ "{:,}".format(totals['max']['kills']) }} ({{ "{:,.2f}".format(totals['max']['kills'] / totals['kills'] * 100 if totals['kills'] > 0 else 0) }}%)</td>
+                            <td>{{ "{:,.2f}".format(totals['max']['kills'] / totals['max']['deaths_by'] if totals['max']['deaths_by'] > 0 else 0) }} <span class="toggleable">({{ "{:,}".format(totals['max']['kills']) }}/{{ "{:,}".format(totals['max']['deaths_by']) }})</span></td>
+                            <td>{{ "{:,.2f}".format(totals['max']['kills'] / totals['minutes_played'] if totals['minutes_played'] > 0 else 0) }} <span class="toggleable">({{ "{:,}".format(totals['max']['kills']) }}/{{ "{:,}".format(totals['minutes_played']) }})</span></td>
+                            <td>{{ "{:,}".format(totals['max']['deaths_by']) }} ({{ "{:,.2f}".format(totals['max']['deaths_by'] / totals['deaths_by'] * 100 if totals['deaths_by'] > 0 else 0) }}%)</td>
+                            <td>{{ "{:,.2f}".format(totals['max']['shots_hit'] / totals['max']['shots_fired'] * 100 if totals['max']['shots_fired'] > 0 else 0) }}% <span class="toggleable">({{ "{:,}".format(totals['max']['shots_hit']) }}/{{ "{:,}".format(totals['max']['shots_fired']) }})</span></td>
+                        </tr>
+                        <tr>
+                            <td colspan="100%" class="hiddenRow">
+                                <div class="accordian-body collapse" id="max">
+                                    <table class="table table-dark table-bordered">
+                                        <thead>
+                                            <tr>
+                                                <th>Name</th>
+                                                <th>Hours Played (%)</th>
+                                                <th>SPM <span class="toggleable">(Score As/Min as)</span></th>
+                                                <th>Kills vs. (%)</th>
+                                                <th>K/D <span class="toggleable">(Kills vs./Deaths by)</span></th>
+                                                <th>KPM <span class="toggleable">(Kills vs./Min Total)</span></th>
+                                                <th>Deaths by (%)</th>
+                                                <th>Accuracy <span class="toggleable">(Hit/Fired)</span></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for character in char_list['chars'] %}
+                                            <tr class="{{ background_dict[character['character_list'][0]['faction_id']] }}">
+                                                <td>{{ character['character_list'][0]['name']['first'] }}</td>
+                                                <td>{{ "{:,.2f}".format(character|get_stat_value_forever('play_time', '7')|int / 3600) }} ({{ "{:,.2f}".format((character|get_stat_value_forever('play_time', '7')|int / 60) / totals['max']['minutes_played'] * 100 if totals['max']['minutes_played'] > 0 else 0) }}%)</td>
+                                                <td>{{ "{:,.2f}".format(character|get_stat_value_forever('score', '7')|int / (character|get_stat_value_forever('play_time', '7')|int / 60) if (character|get_stat_value_forever('play_time', '7')|int / 60) > 0 else 0) }} <span class="toggleable">({{ "{:,}".format(character|get_stat_value_forever('score', '7')|int) }}/{{ "{:,.2f}".format(character|get_stat_value_forever('play_time', '7')|int / 60) }})</span></td>
+                                                <td>{{ "{:,}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('kills', '7'))) }} ({{ "{:,.2f}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('kills', '7')) / totals['max']['kills'] * 100 if totals['max']['kills'] > 0 else 0) }}%)</td>
+                                                <td>{{ "{:,.2f}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('kills', '7')) / character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('killed_by', '7')) if character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('killed_by', '7')) > 0 else 0) }} <span class="toggleable">({{ "{:,}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('kills', '7'))) }}/{{ "{:,}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('killed_by', '7'))) }})</span></td>
+                                                <td>{{ "{:,.2f}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('kills', '7')) / character['character_list'][0]['times']['minutes_played']|int if character['character_list'][0]['times']['minutes_played']|int > 0 else 0) }} <span class="toggleable">({{ "{:,}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('kills', '7'))) }}/{{ "{:,}".format(character['character_list'][0]['times']['minutes_played']|int) }})</span></td>
+                                                <td>{{ "{:,}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('killed_by', '7'))) }} ({{ "{:,.2f}".format(character|combine_stat_by_faction(character|get_stat_by_faction_value_forever('killed_by', '7')) / totals['max']['deaths_by'] * 100 if totals['max']['deaths_by'] > 0 else 0) }}%)</td>
+                                                <td>{{ "{:,.2f}".format(character|get_stat_value_forever('hit_count', '7')|int / character|get_stat_value_forever('fire_count', '7')|int * 100 if character|get_stat_value_forever('fire_count', '7')|int > 0 else 0) }}% <span class="toggleable">({{ "{:,}".format(character|get_stat_value_forever('hit_count', '7')|int) }}/{{ "{:,}".format(character|get_stat_value_forever('fire_count', '7')|int) }})</span></td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div> 
+        {% endif %}
+        <script>
+            document.getElementById('toggleButton').addEventListener('click', function() {
+                var toggleableSpans = document.querySelectorAll('.toggleable');
+                toggleableSpans.forEach(function(span) {
+                    if (span.style.display === 'none') {
+                        span.style.display = 'inline';
+                    } else {
+                        span.style.display = 'none';
+                    }
+                });
+            });
+        </script>
+        <script>
+            document.getElementById('infantryForm').addEventListener('submit', function () {
+                document.getElementById('loading').style.display = 'block';
+            });
+
+            var referrer = document.referrer;
+
+            if (referrer.endsWith('{{ url_for("main.characters") }}')) {
+                // Submit the form
+                document.getElementById('infantryForm').submit();
+
+                // Show the loading icon directly after form submission
+                document.getElementById('loading').style.display = 'block';
+            };
+        </script>
+    </body>
+{% endblock %}

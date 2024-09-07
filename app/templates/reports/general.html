@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+
+{% block app_content %}
+    <head>
+        <style>
+            #loading {display: none;}
+        </style>
+    </head>
+    <body>
+        <h2>General Fuse</h2>
+        <div class="row my-3">
+            <div class="col-md-12">
+                <form id="generalForm" method="POST">
+                    {{ form.hidden_tag() }}<br>
+                    <h6>{{ form.characters2.label }}(s)
+                    <i class="fa-regular fa-circle-question" data-toggle="tooltip" title="Enter a list of characters separated by commas, spaces, or both."></i>
+                    </h6>
+                    <div class="input-group mb-3">
+                        {{ form.characters2(class="form-control col-md-10", placeholder="Pressing 'Run Report' with this box empty will generate the report using the characters stored from the 'Characters' page.") }}
+                        {{ form.run_report(class="btn btn-info form-control col-md-2", type="submit") }}
+                    </div>
+                </form>
+                <div id="loading">
+                    <img src="{{ url_for('static', filename='fidget spinner.gif') }}" alt="loading" style="width: 80px;">
+                    Loading Characters...
+                </div>
+            </div>
+        </div>
+        {% if char_list['chars'] %}
+        <script>
+            var charList = JSON.parse('{{ chart_info["chars"] | tojson | safe }}')
+            console.log(charList)
+        </script>
+        <div class="row my-3">
+            <div class="col-md-12">
+                <button type="button" class="btn btn-secondary form-control text-left" data-toggle="collapse" data-target="#collapseCharacters">Characters - {{ char_list['total'] }} / 16
+                    <i class="fa-regular fa-circle-question" data-toggle="tooltip" title="Limited to 16 characters based on max characters per DBG account."></i>
+                </button>
+                <div id="collapseCharacters" class="collapse show">
+                    <div class="table-responsive">
+                        <table class="table table-dark table-bordered" id="charTable">
+                            <thead>
+                                <tr>
+                                    <th onclick="sortTable(0, 2, 'charTable')">Name <i class="fas fa-sort"></i></th>
+                                    <th onclick="sortTable(1, 2, 'charTable')">Faction <i class="fas fa-sort"></i></th>
+                                    <th onclick="sortTable(2, 2, 'charTable')">Server <i class="fas fa-sort"></i></th>
+                                    <th onclick="sortTable(3, 2, 'charTable')">ASP <i class="fas fa-sort"></i></th>
+                                    <th onclick="sortTable(4, 2, 'charTable')">BR <i class="fas fa-sort"></i></th>
+                                    <th onclick="sortTable(5, 2, 'charTable')">Hours Played <i class="fas fa-sort"></i></th>
+                                    <th onclick="sortTable(6, 2, 'charTable')">Score <i class="fas fa-sort"></i></th>
+                                    <th onclick="sortTable(7, 2, 'charTable')">SPM <i class="fas fa-sort"></i></th>
+                                    <th onclick="sortTable(8, 2, 'charTable')">Kills <i class="fas fa-sort"></i></th>
+                                    <th onclick="sortTable(9, 2, 'charTable')">Assists <i class="fas fa-sort"></i></th>
+                                    <th onclick="sortTable(10, 2, 'charTable')">Deaths <i class="fas fa-sort"></i></th>
+                                    <th onclick="sortTable(11, 2, 'charTable')">K/D <i class="fas fa-sort"></i></th>
+                                    <th onclick="sortTable(12, 2, 'charTable')">True Deaths <i class="fas fa-sort"></i></th>
+                                    <th onclick="sortTable(13, 2, 'charTable')">True K/D <i class="fas fa-sort"></i></th>
+                                    <th onclick="sortTable(14, 2, 'charTable')">KPM <i class="fas fa-sort"></i></th>
+                                    <th onclick="sortTable(15, 2, 'charTable')">Captures <i class="fas fa-sort"></i></th>
+                                    <th onclick="sortTable(16, 2, 'charTable')">Defenses <i class="fas fa-sort"></i></th>
+                                    <th onclick="sortTable(17, 2, 'charTable')">ADR <i class="fas fa-sort"></i></th>
+                                </tr>
+                                <tr>
+                                    <td colspan="5">Total/Average:</td>
+                                    <td>{{ "{:,.2f}".format((totals['minutes_played']) / 60) }}</td>
+                                    <td>{{ "{:,}".format(totals['score']) }}</td>
+                                    <td>{{ "{:,.2f}".format(totals['spm']) }}</td>
+                                    <td>{{ "{:,}".format(totals['kills']) }}</td>
+                                    <td>{{ "{:,}".format(totals['assists']) }}</td>
+                                    <td>{{ "{:,}".format(totals['deaths']) }}</td>
+                                    <td>{{ "{:,.2f}".format(totals['k/d']) }}</td>
+                                    <td>{{ "{:,}".format(totals['true_deaths']) }}</td>
+                                    <td>{{ "{:,.2f}".format(totals['true k/d']) }}</td>
+                                    <td>{{ "{:,.2f}".format(totals['kpm']) }}</td>
+                                    <td>{{ "{:,}".format(totals['captures']) }}</td>
+                                    <td>{{ "{:,}".format(totals['defenses']) }}</td>
+                                    <td>{{ "{:,.2f}".format(totals['adr']) }}</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% set faction_dict = {'1':'VS', '2':'NC', '3':'TR', '4':'NSO'} %}
+                                {% set background_dict = {'1':"vanu", '2':"nc", '3':"terran", '4':"nso"} %}
+                                {% set server_dict = {'1':'Connery', '10':'Miller', '13':'Cobalt', '17':'Emerald', '19':'Jaeger', '24':'Apex', '25':'Briggs', '40':'SolTech'} %}
+                                {% for character in char_list['chars'] %}
+                                <tr class="{{ background_dict[character['character_list'][0]['faction_id']] }}">
+                                    <td>{{ character['character_list'][0]['name']['first'] }}</td>
+                                    <td>{{ faction_dict[character['character_list'][0]['faction_id']] }}</td>
+                                    <td>{{ server_dict[character['character_list'][0]['world_id']] }}</td>
+                                    <td>{{ character['character_list'][0]['prestige_level'] }}</td>
+                                    <td>{{ character['character_list'][0]['battle_rank']['value'] }}</td>
+                                    <td>{{ "{:,.2f}".format(((character['character_list'][0]['times']['minutes_played'])|int) / 60) }}</td>
+                                    <td>{{ "{:,}".format((character['character_list'][0]['stats']['stat_history'][8]['all_time'] if 'stat_history' in character['character_list'][0]['stats'] else 0)|int) }}</td>
+                                    <td>{{ "{:,.2f}".format(((character['character_list'][0]['stats']['stat_history'][8]['all_time'] if 'stat_history' in character['character_list'][0]['stats'] else 0)|int) / ((character['character_list'][0]['times']['minutes_played'])|int)) if ((character['character_list'][0]['times']['minutes_played'])|int) > 0 else 0}}</td>
+                                    <td>{{ "{:,}".format((character['character_list'][0]['stats']['stat_history'][5]['all_time'] if 'stat_history' in character['character_list'][0]['stats'] else 0)|int) }}</td>
+                                    <td>{{ "{:,}".format((character|get_stat_value_forever('assist_count'))|int) }}</td>
+                                    <td>{{ "{:,}".format((character['character_list'][0]['stats']['stat_history'][2]['all_time'] if 'stat_history' in character['character_list'][0]['stats'] else 0)|int) }}</td>
+                                    <td>{{ "{:,.2f}".format(((character['character_list'][0]['stats']['stat_history'][5]['all_time'] if 'stat_history' in character['character_list'][0]['stats'] else 0)|int) / ((character['character_list'][0]['stats']['stat_history'][2]['all_time'] if 'stat_history' in character['character_list'][0]['stats'] else 0)|int)) if ((character['character_list'][0]['stats']['stat_history'][2]['all_time'] if 'stat_history' in character['character_list'][0]['stats'] else 0)|int) > 0 else 0}}</td>
+                                    <td>{{ "{:,}".format((character|get_stat_value_forever('weapon_deaths'))|int) }}</td>
+                                    <td>{{ "{:,.2f}".format(((character['character_list'][0]['stats']['stat_history'][5]['all_time'] if 'stat_history' in character['character_list'][0]['stats'] else 0)|int) / ((character|get_stat_value_forever('weapon_deaths'))|int)) if ((character|get_stat_value_forever('weapon_deaths'))|int) > 0 else 0}}</td>
+                                    <td>{{ "{:,.2f}".format(((character['character_list'][0]['stats']['stat_history'][5]['all_time'] if 'stat_history' in character['character_list'][0]['stats'] else 0)|int) / ((character['character_list'][0]['times']['minutes_played'])|int)) if ((character['character_list'][0]['times']['minutes_played'])|int) > 0 else 0}}</td>
+                                    <td>{{ "{:,}".format((character['character_list'][0]['stats']['stat_history'][3]['all_time'] if 'stat_history' in character['character_list'][0]['stats'] else 0)|int) }}</td>
+                                    <td>{{ "{:,}".format((character['character_list'][0]['stats']['stat_history'][4]['all_time'] if 'stat_history' in character['character_list'][0]['stats'] else 0)|int) }}</td>
+                                    <td>{{ "{:,.2f}".format(((character['character_list'][0]['stats']['stat_history'][3]['all_time'] if 'stat_history' in character['character_list'][0]['stats'] else 0)|int) / ((character['character_list'][0]['stats']['stat_history'][4]['all_time'] if 'stat_history' in character['character_list'][0]['stats'] else 0)|int)) if ((character['character_list'][0]['stats']['stat_history'][4]['all_time'] if 'stat_history' in character['character_list'][0]['stats'] else 0)|int) > 0 else 0}}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row my-3 py-3 mx-1 bg-secondary rounded">
+            <div class="col-md-12">
+                <h4>Charts - show/hide</h4>
+                <div class="btn-group w-100">
+                    <button type="button" class="btn btn-success border toggle-button" data-toggle="collapse" data-target="#collapsePlaytime">Playtime</button>
+                    <button type="button" class="btn btn-success border toggle-button" data-toggle="collapse" data-target="#collapseScore">Score</button>
+                    <button type="button" class="btn btn-success border toggle-button" data-toggle="collapse" data-target="#collapseSPM">SPM</button>
+                    <button type="button" class="btn btn-success border toggle-button" data-toggle="collapse" data-target="#collapseKills">Kills</button>
+                    <button type="button" class="btn btn-dark border toggle-button" data-toggle="collapse" data-target="#collapseKD">K/D</button>
+                    <button type="button" class="btn btn-dark border toggle-button" data-toggle="collapse" data-target="#collapseTKD">True K/D</button>
+                    <button type="button" class="btn btn-dark border toggle-button" data-toggle="collapse" data-target="#collapseKPM">KPM</button>
+                    <button type="button" class="btn btn-dark border toggle-button" data-toggle="collapse" data-target="#collapseADR">ADR</button>
+                </div>
+                <script>
+                    document.addEventListener('DOMContentLoaded', function () {
+                        var buttons = document.querySelectorAll('.toggle-button');
+
+                        buttons.forEach(function (button) {
+                            button.addEventListener('click', function () {
+                                this.classList.toggle('btn-success');
+                                this.classList.toggle('btn-dark');
+                            });
+                        });
+                    });
+                </script>
+            </div>
+        </div>
+        <div class="row my-3">
+            <div class="col-md-12">
+                <div id="collapsePlaytime" class="collapse show">
+                    <canvas id="playtimeChart" class="w-100 d-inline-block" style="max-height: 300px; min-height: 240px;"></canvas>
+                </div>
+                <div id="collapseScore" class="collapse show">
+                    <canvas id="scoreChart" class="w-100 d-inline-block" style="max-height: 300px; min-height: 240px;"></canvas>
+                </div>
+                <div id="collapseSPM" class="collapse show">
+                    <canvas id="spmChart" class="w-100 d-inline-block" style="max-height: 300px; min-height: 240px;"></canvas>
+                </div>
+                <div id="collapseKills" class="collapse show">
+                    <canvas id="killsChart" class="w-100 d-inline-block" style="max-height: 300px; min-height: 240px;"></canvas>
+                </div>
+                <div id="collapseKD" class="collapse">
+                    <canvas id="kdChart" class="w-100 d-inline-block" style="max-height: 300px; min-height: 240px;"></canvas>
+                </div>
+                <div id="collapseTKD" class="collapse">
+                    <canvas id="tkdChart" class="w-100 d-inline-block" style="max-height: 300px; min-height: 240px;"></canvas>
+                </div>
+                <div id="collapseKPM" class="collapse">
+                    <canvas id="kpmChart" class="w-100 d-inline-block" style="max-height: 300px; min-height: 240px;"></canvas>
+                </div>
+                <div id="collapseADR" class="collapse">
+                    <canvas id="adrChart" class="w-100 d-inline-block" style="max-height: 300px; min-height: 240px;"></canvas>
+                </div>
+                <script>
+                    var charList = JSON.parse('{{ char_list | tojson | safe }}')
+                    // Check if there are entries in charList['chars'] and load chart if true
+                    if (charList && charList['chars'] && charList['chars'].length > 0) {
+                        var namesString = "{{ chart_info['chars'] | safe }}"; // Get the string representation of the list
+                        // Remove leading and trailing quotes and brackets, then split the string to create an array
+                        var namesArray = namesString.slice(1, -1).split(', ').map(function(name) {
+                            return name.replace(/'/g, ''); // Remove single quotes from each element
+                        });
+
+                        var factionString = "{{ chart_info['factions'] | safe }}";
+                        var factionArray = factionString.slice(1, -1).split(', ').map(function(faction) {
+                            return faction.replace(/'/g, '');
+                        });
+                        const colorMap = {
+                            1: 'rgba(128, 0, 128, 0.6)',
+                            2: 'rgba(65, 105, 225, 0.6)',
+                            3: 'rgba(128, 0, 0, 0.6)',
+                            4: 'rgba(105, 105, 105, 0.6)',
+                        };
+                        const defaultColor = 'rgba(0, 0, 0, 0.6)';
+                        const backgroundPalette = [];
+                        const borderPalette = [];
+
+                        factionArray.forEach((value) => {
+                            const backgroundColor = colorMap[value] || defaultColor;
+                            const borderColor = colorMap[value]?.replace('0.6)', '1)') || defaultColor.replace('0.6)', '1)');
+                            
+                            backgroundPalette.push(backgroundColor);
+                            borderPalette.push(borderColor);
+                        });
+                        loadBarChart(namesArray, 'playtimeChart', "{{ chart_info['hours_played'] }}", 'Hours Played', "{{ (totals['minutes_played'] / 60) / totals['characters'] }}", backgroundPalette, borderPalette);
+                        loadBarChart(namesArray, 'scoreChart', "{{ chart_info['score'] }}", 'Score', "{{ totals['score'] / totals['characters'] }}", backgroundPalette, borderPalette);
+                        loadBarChart(namesArray, 'spmChart', "{{ chart_info['spm'] }}", 'SPM', "{{ totals['spm'] }}", backgroundPalette, borderPalette);
+                        loadBarChart(namesArray, 'killsChart', "{{ chart_info['kills'] }}", 'Kills', "{{ totals['kills'] / totals['characters'] }}", backgroundPalette, borderPalette);
+                        loadBarChart(namesArray, 'kdChart', "{{ chart_info['k/d'] }}", 'K/D Ratio', "{{ totals['k/d'] }}", backgroundPalette, borderPalette);
+                        loadBarChart(namesArray, 'tkdChart', "{{ chart_info['true k/d'] }}", 'True K/D Ratio', "{{ totals['true k/d'] }}", backgroundPalette, borderPalette);
+                        loadBarChart(namesArray, 'kpmChart', "{{ chart_info['kpm'] }}", 'KPM', "{{ totals['kpm'] }}", backgroundPalette, borderPalette);
+                        loadBarChart(namesArray, 'adrChart', "{{ chart_info['adr'] }}", 'ADR', "{{ totals['adr'] }}", backgroundPalette, borderPalette);
+                    }
+                    function loadBarChart(namesArray, chartName, data, chartLabel, avg, backgroundPalette, borderPalette) {
+                        var dataString = data;
+                        var dataArray = dataString.slice(1, -1).split(', ');
+
+                        document.addEventListener('DOMContentLoaded', function() {
+                            const ctx = document.getElementById(chartName).getContext('2d');
+                            const myChart = new Chart(ctx, {
+                                type: 'bar',
+                                data: {
+                                    labels: namesArray,
+                                    datasets: [{
+                                        label: chartLabel, 
+                                        data: dataArray, 
+                                        backgroundColor: backgroundPalette, 
+                                        borderColor: borderPalette, 
+                                        borderWidth: 2
+                                    }]
+                                },
+                                options: {
+                                    plugins: {
+                                        legend: {
+                                            labels: {
+                                                color: 'white',
+                                                font: {
+                                                    size: 18
+                                                }
+                                            }
+                                        },
+                                        annotation: {
+                                            annotations: [{
+                                                type: 'line',
+                                                borderColor: 'red',
+                                                borderDash: [6,6],
+                                                borderDashOffset: 0,
+                                                borderWidth: 2,
+                                                label: {
+                                                    enabled: true,
+                                                    content: 'Average: ' + avg,
+                                                    position: 'end'
+                                                },
+                                                scaleID: 'y',
+                                                value: avg
+                                            }]
+                                        }
+                                    },
+                                    tooltips: {
+                                        enabled: false,
+                                        callbacks: {
+                                            label: function (tooltipItem) {
+                                                return tooltipItem.yLabel + ' ' + tooltipItem.xLabel;
+                                            }
+                                        }
+                                    },
+                                    scales: {
+                                        y: {
+                                            ticks: {
+                                                color: 'white'
+                                            },
+                                            beginAtZero: true
+                                        },
+                                        x: {
+                                            ticks: {
+                                                color: 'white'
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+                        });
+                    }
+                </script>
+            </div>
+        </div>
+        {% endif %}
+        <script>
+            document.getElementById('generalForm').addEventListener('submit', function () {
+                document.getElementById('loading').style.display = 'block';
+            });
+
+            var referrer = document.referrer;
+
+            if (referrer.endsWith('{{ url_for("main.characters") }}')) {
+                // Submit the form
+                document.getElementById('generalForm').submit();
+
+                // Show the loading icon directly after form submission
+                document.getElementById('loading').style.display = 'block';
+            };
+        </script>
+    </body>
+{% endblock %}

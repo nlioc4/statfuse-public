@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block app_content %}
+    <head>
+        <style>
+            #loading {display: none;}
+        </style>
+    </head>
+    <body>
+        <h3>WIP - NOT FINISHED</h3>
+        <div class="row my-3">
+            <div class="col-md-12">
+                <form id="weaponsForm" method="POST">
+                    {{ form.hidden_tag() }}<br>
+                    <h6>{{ form.characters2.label }}(s)
+                    <i class="fa-regular fa-circle-question" data-toggle="tooltip" title="Enter a list of characters separated by commas, spaces, or both."></i>
+                    </h6>
+                    <div class="input-group mb-3">
+                        {{ form.characters2(class="form-control col-md-10", placeholder="Pressing 'Run Report' with this box empty will generate the report using the characters stored from the 'Characters' page.") }}
+                        {{ form.run_report(class="btn btn-info form-control col-md-2", type="submit") }}
+                    </div>
+                </form>
+                <div id="loading">
+                    <img src="{{ url_for('static', filename='fidget spinner.gif') }}" alt="loading" style="width: 80px;">
+                    Loading Characters...
+                </div>
+            </div>
+        </div>
+        {% if char_list['chars'] %}
+        <script>
+            var charList = JSON.parse('{{ chart_info["chars"] | tojson | safe }}')
+            console.log(charList)
+        </script>
+        <div class="row my-3">
+            <div class="col-md-12">
+                Auraxium Medals: {{ medals['total_auraxium']}}<br>
+                Gold Medals: {{ medals['total_gold']}}<br>
+                Silver Medals: {{ medals['total_silver']}}<br>
+                Bronze Medals: {{ medals['total_bronze']}}<br>
+                {% for character in medals['chars'] %}
+                    {% set index = loop.index0 %}
+                    <button type="button" class="btn btn-secondary form-control text-left" data-toggle="collapse" data-target="#collapseCharacter{{ index }}">{{ character['name'] }} - Auraxium Medals: {{ character['auraxium'] }} (click to expand)</button>
+                    <div id="collapseCharacter{{ index }}" class="collapse">
+                        <table class="table table-dark table-striped table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Weapon</th>
+                                    <th>Date Finished</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for weapon in character['weapons'] %}
+                                <tr>
+                                    <td>{{ weapon['name'] }}</td>
+                                    <td>{{ weapon['finish_date'] }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        <script>
+            document.getElementById('weaponsForm').addEventListener('submit', function () {
+                document.getElementById('loading').style.display = 'block';
+            });
+
+            var referrer = document.referrer;
+
+            if (referrer.endsWith('{{ url_for("main.characters") }}')) {
+                // Submit the form
+                document.getElementById('weaponsForm').submit();
+
+                // Show the loading icon directly after form submission
+                document.getElementById('loading').style.display = 'block';
+            };
+        </script>
+    </body>
+{% endblock %}

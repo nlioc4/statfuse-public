@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block app_content %}
+    <div class="row">
+        <div class="col-md-7">
+            <h2>Welcome to StatFuse</h2>
+            <br>
+            <a href="{{ url_for('main.characters') }}" class="btn btn-info w-100" role="button">Characters</a>
+                <p>
+                    The Characters page is mainly used to store your characters in browser cookies. 
+                    This lets you use the same characters on all of the report pages without needing to type them on each page. 
+                    This page also gives easy access to Fisu and Honu links for each character.
+                </p>
+            <div class="btn-group w-100">
+                <a class="btn btn-info border" href="{{ url_for('reports.general') }}">General</a>
+                <a class="btn btn-info border" href="{{ url_for('reports.infantry') }}">Infantry</a>
+                <a class="btn btn-info border" href="{{ url_for('reports.weapons') }}">Weapons(beta)</a>
+            </div>
+                <p>
+                    The report pages generate tables and charts to showcase different data.<br>
+                    <strong>General</strong> - common all-time stats such as time played, kills, k/d, etc.<br>
+                    <strong>Infantry</strong> - stats based on infantry classes such as how many times you have killed a medic or died to an infil, etc.<br>
+                    <strong>Weapons(beta)</strong> - hastily added page to show medal distribution since I like to see auraxium medals.
+                </p>
+            <h4>What is StatFuse?</h4>
+                <p>
+                    StatFuse is a site made to easily provide statistics from all* of your characters, including totals/averages. 
+                    This is primarily designed to report on alt characters, but the tables and charts do also provide the ability to easily compare multiple characters. 
+                </p>
+                <p>*may or may not be able to handle all your characters, some of you nutcases have more than the 16 that I allow you to run a report with.</p>
+                <p>
+                    One thing to note, I have never made a website before and this is my first large project. 
+                    I expect some issues will pop up and QoL features will be missing. 
+                    Please reach out to me with the information below if you have any errors/requests.
+                </p>
+            <h4>Contact</h4>
+                <p>
+                    The easiest way to contact me is going to be through Discord.<br>
+                    My Discord name is "wazix" with a display name of some similar variation, I can be found in many PS2 Discord servers if you want to message me directly.<br><br>
+                    StatFuse announcements and discussion can be found in the Community Developer Discord: <br>
+                    <a href="https://discord.gg/yVzGEg3RKV" class="btn btn-info" role="button" target="_blank" rel="noopener noreferrer">Planetside Community Developers Discord</a>
+                </p>
+            <h4>Support</h4>
+                <p>
+                    I do not expect anyone to donate, but I will leave the button here in case anyone would like to.
+                </p>
+                <a href="https://www.paypal.com/donate/?business=SPQ8CJH5EJ5U6&no_recurring=0&currency_code=USD" class="btn btn-info" role="button" target="_blank" rel="noopener noreferrer">Support StatFuse</a>
+        </div>
+        <div class="col-md-5">
+            <h2>News/Updates</h2>
+            <br>
+            <h5>2/12/2024</h5>
+                <p>
+                    - Added Infantry report page, this is an early version without any graphs yet<br>
+                </p>
+            <h5>2/5/2024</h5>
+                <p>
+                    - Fixed an incredibly stupid error that was causing reports to not work<br>
+                </p>
+            <h5>1/28/2024</h5>
+                <p>
+                    - Added 30 second timeout for reports, this should prevent most of the 502/504 errors<br>
+                    - Added quicker timeout for API calls with a max of 3 retries, this should avoid some of the issues with occasional failed responses<br>
+                </p>
+            <h5>1/22/2024</h5>
+                <p>
+                    - Added a very early concept of a portion of the Weapons page, this may be a separate medal report page in the future<br>
+                </p>
+            <h5>1/18/2024</h5>
+                <p>
+                    - Added some info to the main page<br>
+                    - Replaced the doughnut charts on the General page with bar charts<br>
+                    - Opening report pages from the Characters page will now automatically run the report with the saved characters<br>
+                    - Changed half of the charts on the General page to be hidden by default, this is an attempt to indicate that the buttons show/hide the charts<br>
+                </p>
+            <h5>1/13/2024</h5>
+                <p>
+                    - Added buttons to toggle chart visibility on the General page<br>
+                    - Fixed issue that caused a report to fail due to a character with no stat_history entries<br>
+                </p>
+            <h5>1/12/2024</h5>
+                <p>
+                    - Added faction colors to the table rows<br>
+                    - (Hopefully) Improved UX for running reports<br>
+                    - Moved legend for the doughnut charts, I'd like to do more formatting on these charts in the future<br>
+                </p>
+            <h5>1/11/2024</h5>
+                <p>
+                    - Initial launch<br>
+                </p>
+        </div>
+    </div>
+    
+{% endblock %}

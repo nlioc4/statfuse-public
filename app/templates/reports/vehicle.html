@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block app_content %}
+    <head>
+        <style>
+            #loading {display: none;}
+        </style>
+    </head>
+    <body>
+        <div class="row my-3">
+            <div class="col-md-12">
+                <form id="vehicleForm" method="POST">
+                    {{ form.hidden_tag() }}<br>
+                    <h6>{{ form.characters2.label }}(s)
+                    <i class="fa-regular fa-circle-question" data-toggle="tooltip" title="Enter a list of characters separated by commas, spaces, or both."></i>
+                    </h6>
+                    <div class="input-group mb-3">
+                        {{ form.characters2(class="form-control col-md-10", placeholder="Pressing 'Run Report' with this box empty will generate the report using the characters stored from the 'Characters' page.") }}
+                        {{ form.run_report(class="btn btn-info form-control col-md-2", type="submit") }}
+                    </div>
+                </form>
+                <div id="loading">
+                    <img src="{{ url_for('static', filename='fidget spinner.gif') }}" alt="loading" style="width: 80px;">
+                    Loading Characters...
+                </div>
+            </div>
+        </div>
+        <script>
+            document.getElementById('vehicleForm').addEventListener('submit', function () {
+                document.getElementById('loading').style.display = 'block';
+            });
+
+            var referrer = document.referrer;
+
+            if (referrer.endsWith('{{ url_for("main.characters") }}')) {
+                // Submit the form
+                document.getElementById('vehicleForm').submit();
+
+                // Show the loading icon directly after form submission
+                document.getElementById('loading').style.display = 'block';
+            };
+        </script>
+    </body>
+{% endblock %}

@@ -10,3 +10,9 @@
 - Activate the virtual environment with ".\venv\Scripts\activate" (depending on what terminal/OS is used this will be different, just look up activating a virtual environment with Python.
 - Install requirements with "pip install -r .\requirements.txt".
 - Use "flask run" to run the program (Changing FLASK_DEBUG in .flaskenv between 1 and 0 will toggle debug mode).
+
+
+
+# Docker
+
+A dockerfile and compose.yaml have been included to allow for easy deployment of the project.

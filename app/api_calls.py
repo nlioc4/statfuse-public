@@ -1,6 +1,7 @@
 import requests, json, os
 
 SERVICE_ID = os.environ.get('SECRET_KEY', 's:example')
+print(f"Using service ID: {SERVICE_ID}")
 
 # returns information from census api as a json string
 def call_census(url):

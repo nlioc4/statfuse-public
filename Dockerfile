@@ -1,4 +1,4 @@
-FROM python:3.12 as statfuse
+FROM python:3.12-alpine as statfuse
 
 COPY requirements.txt /statfuse/requirements.txt
 
